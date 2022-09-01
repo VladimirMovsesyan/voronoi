@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define WIDTH 1920
-#define HEIGHT 1080
-#define SEEDS_COUNT 50
+#define WIDTH 800
+#define HEIGHT 600
+#define SEEDS_COUNT 10
 #define SEED_RADIUS 5
 // #define PALETTE_COUNT 7
 
@@ -56,10 +56,15 @@ uint32_t point_to_color(uint16_t x, uint16_t y) {
     return (y << 16) | x;
 }
 
-void fill_background(void) {
+Point color_to_point(uint32_t color) {
+    Point p = {color & 0x0000FFFF, (color & 0xFFFF0000) >> 16};
+    return p;
+}
+
+void fill_image(uint32_t color) {
     for (uint16_t y = 0; y < HEIGHT; y++) {
         for (uint16_t x = 0; x < WIDTH; x++) {
-            field[y][x] = BACKGROUND_COLOR;
+            field[y][x] = color;
         }
     }
 }
@@ -71,7 +76,7 @@ void generate_seeds(void) {
     }
 }
 
-void paint_segments() {
+void paint_segments(void) {
     for (uint16_t y = 0; y < HEIGHT; y++) {
         for (uint16_t x = 0; x < WIDTH; x++) {
             size_t j = 0;
@@ -87,6 +92,27 @@ void paint_segments() {
     }
 }
 
+void apply_next_seed(size_t index) {
+    for (uint16_t y = 0; y < HEIGHT; y++) {
+        for (uint16_t x = 0; x < WIDTH; x++) {
+            Point curr_seed = color_to_point(field[y][x]);
+            if (sqr_dist(x, y, seeds[index].x, seeds[index].y) 
+                < sqr_dist(x, y, curr_seed.x, curr_seed.y)) {
+                field[y][x] = point_to_color(seeds[index].x, seeds[index].y);
+            }
+        }
+    }
+}
+
+void paint_segments2(void) {
+    fill_image(point_to_color(seeds[0].x, seeds[0].y));
+
+    for (size_t i = 1; i < SEEDS_COUNT; i++) {
+        apply_next_seed(i);
+    }
+
+}
+
 void draw_circle(uint16_t x, uint16_t y, uint16_t radius, uint32_t color) {
     for (uint16_t y0 = y - min(y, radius); y0 < y + radius && y0 < HEIGHT; y0++) {
         for (uint16_t x0 = x - min(x, radius); x0 < x + radius && x0 < WIDTH; x0++) {
@@ -97,9 +123,11 @@ void draw_circle(uint16_t x, uint16_t y, uint16_t radius, uint32_t color) {
     }
 }
 
+// drawing picture
 void draw(void) {
 
-    paint_segments();
+    // painting segments
+    paint_segments2();
 
     // drawing seeds
     for (size_t i = 0; i < SEEDS_COUNT; i++) {
@@ -130,9 +158,8 @@ void dump_image(void) {
     fclose(f);
 }
 
-int main() {
+int main(void) {
     srand(time(NULL));
-    fill_background();
     generate_seeds();
     draw();
     dump_image();

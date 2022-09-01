@@ -1,0 +1,7 @@
+voronoi
+
+*.ppm
+
+.vscode/
+
+*.DS_Store
